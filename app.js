@@ -14,6 +14,7 @@ var config = {
 		},
 		saveAccessToken:function(data){
 			data = JSON.stringify(data)
+			console.log(5)
 			return util.writeFileAsync(wechat_file,data)
 		}
 	}
