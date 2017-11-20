@@ -6,7 +6,7 @@ var util = require('../libs/util')
 var Wechat = require('./wechat')
 module.exports = function(opts,handler){
     var wechat = new Wechat(opts)
-    console.log(1)
+    // console.log(1)
     return function *(next){
         let that = this
         var token = opts.token
@@ -38,8 +38,9 @@ module.exports = function(opts,handler){
             var content = yield util.parseXMLAsync(data)
             var message = util.formatMessage(content.xml)
             this.weixin = message
-            this.content = content
+            // this.content = content
             yield handler.call(this,next)
+            // console.log('this',this)
             wechat.reply.call(this)
             // if(message.MsgType === 'event'){
             //     if(message.Event === 'subscribe'){
