@@ -1,10 +1,24 @@
 var request = require('request')
+var _ = require('lodash')
 var util = require('../libs/util')
 var fs = require('fs')
 var prefix = 'https://api.weixin.qq.com/cgi-bin/'
 var api = {
     accessToken:prefix + 'token?grant_type=client_credential',
-    upload:prefix + 'media/upload?'
+    temporary:{
+        upload:prefix + 'media/upload?',
+        fetch:prefix + 'media/get?'
+    },
+    permanent:{
+        upload:prefix + 'material/add_material?',
+        fetch:prefix + 'material/get_material?',
+        uploadNews:prefix + 'material/add_news?',
+        uploadNewsPic:prefix + 'media/uploadimg?',
+        del:prefix + 'media/del_material?',
+        update:prefix + 'media/update_news?',
+        count:prefix + 'media/get_materialcount?',
+        batch:prefix + 'media/batchget_material?'
+    }
 }
 
 function Wechat(opts){
@@ -88,21 +102,44 @@ Wechat.prototype.updateAccessToken = function(){
         })
     })
 }
-Wechat.prototype.uploadMaterial = function(type,filepath){
+Wechat.prototype.uploadMaterial = function(type,material,permanent){
     var that = this
-    var form = {
-        media:fs.createReadStream(filepath)
+    var form = {}
+    var uploadUrl = api.temporary.upload
+    if(permanent){
+        uploadUrl = api.permanent.upload
+        _.extend(form,permanent)
+    }
+    if(type === 'pic'){
+        uploadUrl = api.permanent.uploadNewsPic
+    }
+    if(type === 'news'){
+        uploadUrl = api.permanent.uploadNews
+        form = material
+    }else{
+        form.media = fs.createReadStream(material)
     }
     var appID = this.appID
     var appSecret = this.appSecret
     return new Promise(function(resolve,reject){
         that.fetchAccessToken()
         .then((data)=>{
-            var url = api.upload + '&access_token=' + data.access_token + '&type=' + type
+            var url = uploadUrl + '&access_token=' + data.access_token
+            if(!permanent){
+                url += '&type=' + type
+            }else{
+                form.access_token = data.access_token
+            }
             let opts = {url:url,json:true,method:'POST',formData:form}
+            if(type === 'news'){
+                opts.body = form 
+            }else{
+                opts.formData = form
+            }
             util.request(opts)
             .then(function(res){
-                var _data = res[1]
+                console.log('uploadMaterial res',res)
+                var _data = res
                 if(_data){
                     resolve(_data)
                 }else{
@@ -115,7 +152,139 @@ Wechat.prototype.uploadMaterial = function(type,filepath){
                 reject(e)
             })
         })
-        
+    })
+}
+Wechat.prototype.fetchMaterial = function(mediaId,type,permanent){
+    var that = this
+    var form = {}
+    var fetchUrl = api.temporary.fetch
+    if(permanent){
+        fetchUrl = api.permanent.fetch
+    }
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url = fetchUrl + '&access_token=' + data.access_token + '&media_id=' + mediaId
+            if(!permanent && type === 'video'){
+                url = url.replace('https://','http://')
+            }
+            resolve(url)
+        })
+    })
+}
+Wechat.prototype.deleteMaterial = function(mediaId){
+    var that = this
+    var form = {
+        media_id:mediaId
+    }
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url = api.permanent.del + '&access_token=' + data.access_token + '&media_id=' + mediaId
+            let opts = {url:url,json:true,method:'POST',body:form}
+            
+            util.request(opts)
+            .then(function(res){
+                console.log('delMaterial res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('del material fails')
+                }
+                
+            })
+            .catch((e)=>{
+                console.log('del material error')
+                reject(e)
+            })
+        })
+    })
+}
+Wechat.prototype.updateMaterial = function(mediaId,news){
+    var that = this
+    var form = {
+        media_id:mediaId
+    }
+    _.extend(form,news)
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url = api.permanent.update + '&access_token=' + data.access_token + '&media_id=' + mediaId
+            let opts = {url:url,json:true,method:'POST',body:form}
+            
+            util.request(opts)
+            .then(function(res){
+                console.log('updateMaterial res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('update material fails')
+                }
+                
+            })
+            .catch((e)=>{
+                console.log('update material error')
+                reject(e)
+            })
+        })
+    })
+}
+Wechat.prototype.countMaterial = function(){
+    var that = this
+    
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url = api.permanent.count + '&access_token=' + data.access_token
+            let opts = {url:url,json:true,method:'GET'}
+            
+            util.request(opts)
+            .then(function(res){
+                console.log('updateMaterial res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('update material fails')
+                }
+                
+            })
+            .catch((e)=>{
+                console.log('update material error')
+                reject(e)
+            })
+        })
+    })
+}
+Wechat.prototype.batchMaterial = function(options){
+    var that = this
+    options.type = options.type || 'image'
+    options.offset = options.offset || 0
+    options.count = options.count || 1
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url = api.permanent.batch + '&access_token=' + data.access_token
+            let opts = {url:url,json:true,method:'POST',body:options}
+            
+            util.request(opts)
+            .then(function(res){
+                console.log('updateMaterial res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('update material fails')
+                }
+                
+            })
+            .catch((e)=>{
+                console.log('update material error')
+                reject(e)
+            })
+        })
     })
 }
 Wechat.prototype.reply = function(){

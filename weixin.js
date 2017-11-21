@@ -52,7 +52,44 @@ exports.reply = function *(next){
             
         }else if(content == '5'){
             var data = yield wechatApi.uploadMaterial('image',__dirname + '/2.png')
-            reply = '天下第二吃豆腐'
+            reply = {
+                type:'image',
+                mediaId:data.media_id
+            }
+        }else if(content == '6'){
+            var data = yield wechatApi.uploadMaterial('video',__dirname + '/6.mp4')
+            reply = {
+                type:'video',
+                title:'我的小鱼',
+                description:'可爱的鼠鱼',
+                mediaId:data.media_id
+            }
+        }else if(content == '7'){
+            var data = yield wechatApi.uploadMaterial('image',__dirname + '/2.png')
+            reply = {
+                type:'music',
+                title:'回复音乐内容',
+                description:'放松一下',
+                thumbMediaId:data.media_id,
+                musicUrl:'https://i.y.qq.com/v8/playsong.html?songid=105030812&source=yqq#wechat_redirect'
+            }
+        }else if(content == '8'){
+            var data = yield wechatApi.uploadMaterial('image',__dirname + '/2.png',{type:'image'})
+            reply = {
+                type:'image',
+                mediaId:data.media_id
+            }
+        }else if(content == '9'){
+            var data = yield wechatApi.uploadMaterial('video',__dirname + '/6.mp4',{
+                type:"video",
+                description:'{"title":"real a nice place","introduction":"never think is so easy"}'
+            })
+            reply = {
+                type:'video',
+                title:'我的小鱼',
+                description:'可爱的鼠鱼',
+                mediaId:data.media_id
+            }
         }
         console.log('reply',reply)
         this.body = reply
