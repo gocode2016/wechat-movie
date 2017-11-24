@@ -168,7 +168,28 @@ Wechat.prototype.fetchMaterial = function(mediaId,type,permanent){
             if(!permanent && type === 'video'){
                 url = url.replace('https://','http://')
             }
-            resolve(url)
+            
+            let form = {
+                media_id:mediaId,
+                access_token:access_token
+            }
+            let opts = {url:url,json:true,method:'POST',body:form}
+            
+            util.request(opts)
+            .then(function(res){
+                console.log('fetchMaterial res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('fetchMaterial material fails')
+                }
+                
+            })
+            .catch((e)=>{
+                console.log('fetchMaterial material error')
+                reject(e)
+            })
         })
     })
 }
@@ -271,17 +292,17 @@ Wechat.prototype.batchMaterial = function(options){
             
             util.request(opts)
             .then(function(res){
-                console.log('updateMaterial res',res)
+                console.log('batchMaterial res',res)
                 var _data = res
                 if(_data){
                     resolve(_data)
                 }else{
-                    throw new Error('update material fails')
+                    throw new Error('batch material fails')
                 }
                 
             })
             .catch((e)=>{
-                console.log('update material error')
+                console.log('batch material error')
                 reject(e)
             })
         })

@@ -9,7 +9,7 @@ exports.reply = function *(next){
             if(message.EventKey){
                 console.log('扫二维码进来：'+message.EventKey + ' ' +message.ticket)
             }
-            this.content = '你订阅了。\n哈哈'
+            this.body = '你订阅了。\n哈哈'
             console.log('subscribe')
         }
         else if(message.Event == 'unsubscribe'){
@@ -90,6 +90,34 @@ exports.reply = function *(next){
                 description:'可爱的鼠鱼',
                 mediaId:data.media_id
             }
+        }else if(content == '10'){
+            var picData = yield wechatApi.uploadMaterial('image',__dirname + '2.png')
+            var media = {
+                articles:[{
+                    title:'tututt',
+                    thumbMediaId:picData.media_id,
+                    author:'jinjianhua',
+                    digest:'没有摘要',
+                    show_cover_pic:1,
+                    content:'没有内容',
+                    content_source_url:"https://github.com"
+                }]
+                
+            }
+            data = yield wechatApi.uploadMaterial('news',media,{})
+            data = yield wechatApi.fetchMaterial('news',data.media_id)
+            console.log('fetchMaterial',data)
+            var item = data.news_item
+            var news = []
+            item.forEach(function(item){
+                news.push({
+                    title:item.title,
+                    description:item.digest,
+                    picUrl:picData.url,
+                    url:item.url
+                })
+            })
+            reply = news
         }
         console.log('reply',reply)
         this.body = reply
