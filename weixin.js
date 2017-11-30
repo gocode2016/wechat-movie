@@ -18,6 +18,7 @@ exports.reply = function *(next){
         }
         else if(message.Event == 'LOCATION'){
             this.body = `您上报的位置是：${message.Latitude}/${message.Longitude}-${message.Precision}`
+            console.log(`您上报的位置是：${message.Latitude}/${message.Longitude}-${message.Precision}`)
         }
         else if(message.Event == 'CLICK'){
             this.body = `您点击了菜单：${message.EventKey}`
@@ -91,25 +92,27 @@ exports.reply = function *(next){
                 mediaId:data.media_id
             }
         }else if(content == '10'){
-            var picData = yield wechatApi.uploadMaterial('image',__dirname + '2.png')
+            var picData = yield wechatApi.uploadMaterial('image',__dirname + '/2.png',{})
+            console.log('picData',picData)
             var media = {
-                articles:[{
-                    title:'tututt',
-                    thumbMediaId:picData.media_id,
-                    author:'jinjianhua',
-                    digest:'没有摘要',
-                    show_cover_pic:1,
-                    content:'没有内容',
-                    content_source_url:"https://github.com"
+                "articles":[{
+                    "title":'tututt',
+                    "thumb_media_id":picData.media_id,
+                    "author":'jinjianhua',
+                    "digest":'没有摘要',
+                    "show_cover_pic":1,
+                    "content":'没有内容',
+                    "content_source_url":"https://github.com"
                 }]
                 
             }
             data = yield wechatApi.uploadMaterial('news',media,{})
-            data = yield wechatApi.fetchMaterial('news',data.media_id)
-            console.log('fetchMaterial',data)
-            var item = data.news_item
+            console.log('data1',data)
+            data = yield wechatApi.fetchMaterial(data.media_id,'news',{})
+            console.log('data2',data)
+            var items = data.news_item
             var news = []
-            item.forEach(function(item){
+            items.forEach(function(item){
                 news.push({
                     title:item.title,
                     description:item.digest,
@@ -118,6 +121,54 @@ exports.reply = function *(next){
                 })
             })
             reply = news
+        }else if(content == '11'){
+            var counts = yield wechatApi.countMaterial()
+            console.log('counts',JSON.stringify(counts) )
+            var results = yield [
+                wechatApi.batchMaterial({
+                    type:'image',
+                    offset:0,
+                    count:10
+                }),
+                wechatApi.batchMaterial({
+                    type:'video',
+                    offset:0,
+                    count:10
+                }),
+                wechatApi.batchMaterial({
+                    type:'voice',
+                    offset:0,
+                    count:10
+                }),
+                wechatApi.batchMaterial({
+                    type:'news',
+                    offset:0,
+                    count:10
+                })
+            ]
+            console.log('results',JSON.stringify(results))
+            reply = '1'
+        }else if(content == '13'){
+            var user = yield wechatApi.batchFetchUsers(message.FromUserName)
+            console.log('user1',user)
+            var openIds = [
+                {
+                    openid:message.FromUserName,
+                    lang:'en'
+                }
+            ]
+            var users = yield wechatApi.batchFetchUsers(openIds)
+            console.log('users2',users)
+            reply = JSON.stringify(users)
+        }else if(content == '15'){
+            
+            var touser = "ox8VuxA7L0-52Z4_n2M5D7liHvx4"
+            var mpnews = {
+                media_id:"FPml8aist0KED-Mb2ofRKe5JHt0vTZlPbZfYSty0oVc"
+            }
+            var msgtype = 'mpnews'
+            var users = yield wechatApi.massByOpenIds(touser,mpnews,msgtype)
+            reply = '群发成功'
         }
         console.log('reply',reply)
         this.body = reply

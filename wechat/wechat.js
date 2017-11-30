@@ -14,10 +14,18 @@ var api = {
         fetch:prefix + 'material/get_material?',
         uploadNews:prefix + 'material/add_news?',
         uploadNewsPic:prefix + 'media/uploadimg?',
-        del:prefix + 'media/del_material?',
-        update:prefix + 'media/update_news?',
-        count:prefix + 'media/get_materialcount?',
-        batch:prefix + 'media/batchget_material?'
+        del:prefix + 'material/del_material?',
+        update:prefix + 'material/update_news?',
+        count:prefix + 'material/get_materialcount?',
+        batch:prefix + 'material/batchget_material?'
+    },
+    user:{
+        remark:prefix + 'user/info/updateremark?',
+        fetch:prefix +'user/info?',
+        batchFetch:prefix + 'user/info/batchget?'
+    },
+    mass:{
+        byOpenIds:prefix +'message/mass/preview?'
     }
 }
 
@@ -119,23 +127,25 @@ Wechat.prototype.uploadMaterial = function(type,material,permanent){
     }else{
         form.media = fs.createReadStream(material)
     }
-    var appID = this.appID
-    var appSecret = this.appSecret
+    // var appID = this.appID
+    // var appSecret = this.appSecret
     return new Promise(function(resolve,reject){
         that.fetchAccessToken()
         .then((data)=>{
-            var url = uploadUrl + '&access_token=' + data.access_token
+            // + '&access_token=' + data.access_token
+            var url = uploadUrl+ '&access_token=' + data.access_token
             if(!permanent){
                 url += '&type=' + type
             }else{
                 form.access_token = data.access_token
             }
-            let opts = {url:url,json:true,method:'POST',formData:form}
+            let opts = {url:url,json:true,method:'POST'}
             if(type === 'news'){
                 opts.body = form 
             }else{
                 opts.formData = form
             }
+            console.log('uploadMaterial opts',opts)
             util.request(opts)
             .then(function(res){
                 console.log('uploadMaterial res',res)
@@ -148,7 +158,7 @@ Wechat.prototype.uploadMaterial = function(type,material,permanent){
                 
             })
             .catch((e)=>{
-                console.log('upload material error')
+                console.log('upload material error',e)
                 reject(e)
             })
         })
@@ -164,32 +174,47 @@ Wechat.prototype.fetchMaterial = function(mediaId,type,permanent){
     return new Promise(function(resolve,reject){
         that.fetchAccessToken()
         .then((data)=>{
-            var url = fetchUrl + '&access_token=' + data.access_token + '&media_id=' + mediaId
+            var url = fetchUrl + '&access_token=' + data.access_token
             if(!permanent && type === 'video'){
                 url = url.replace('https://','http://')
             }
-            
-            let form = {
-                media_id:mediaId,
-                access_token:access_token
-            }
-            let opts = {url:url,json:true,method:'POST',body:form}
-            
-            util.request(opts)
-            .then(function(res){
-                console.log('fetchMaterial res',res)
-                var _data = res
-                if(_data){
-                    resolve(_data)
-                }else{
-                    throw new Error('fetchMaterial material fails')
+            var form = {}
+            let opts = {url:url,json:true,method:'POST'}
+            if(permanent){
+                form.media_id = mediaId
+                form.access_token = data.access_token
+                opts.body = form
+            }else{
+                if(type == 'video'){
+                    url = url.replace('https://','http://')
                 }
-                
-            })
-            .catch((e)=>{
-                console.log('fetchMaterial material error')
-                reject(e)
-            })
+                url += '&media_id=' + mediaId
+            }
+
+            // let form = {
+            //     media_id:mediaId,
+            //     access_token:access_token
+            // }
+            if(type === 'news' || type === 'video'){
+                util.request(opts)
+                .then(function(res){
+                    console.log('fetchMaterial res',res)
+                    var _data = res
+                    if(_data){
+                        resolve(_data)
+                    }else{
+                        throw new Error('fetchMaterial material fails')
+                    }   
+                })
+                .catch((e)=>{
+                    console.log('fetchMaterial material error')
+                    reject(e)
+                })
+            }else{
+                resolve(url)
+            }
+            
+            
         })
     })
 }
@@ -303,6 +328,103 @@ Wechat.prototype.batchMaterial = function(options){
             })
             .catch((e)=>{
                 console.log('batch material error')
+                reject(e)
+            })
+        })
+    })
+}
+Wechat.prototype.remarkUser = function(openId,remark){
+    var that = this
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url = api.user.remark + 'access_token=' + data.access_token
+            var form = {
+                openid:openId,
+                remark:remark
+            }
+            let opts = {url:url,json:true,method:'GET',body:form}
+            util.request(opts)
+            .then(function(res){
+                console.log('user remark res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('user remark fails')
+                }   
+            })
+            .catch((e)=>{
+                console.log('user remark  error')
+                reject(e)
+            })
+        })
+    })
+}
+Wechat.prototype.batchFetchUsers = function(openIds){
+    var that = this
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url 
+            var form 
+            let opts = {url:url,json:true,method:'GET'}
+            if(_.isArray(openIds)){
+                url = api.user.batchFetch + 'access_token=' + data.access_token
+                opts.body = {
+                    user_list:openIds
+                }
+                opts.method = 'POST'
+                opts.url = url
+            }else {
+                url = api.user.fetch + 'access_token=' + data.access_token
+                + '&openid=' + openIds + '&lang=zh_CN'
+                opts.url = url
+            }
+            console.log(opts)
+            util.request(opts)
+            .then(function(res){
+                console.log('user batchFetchUsers res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('user batch fetch fails')
+                }   
+            })
+            .catch((e)=>{
+                console.log('user batch fetch  error')
+                reject(e)
+            })
+        })
+    })
+}
+Wechat.prototype.massByOpenIds = function(openIds,mpnews,msgtype){
+    var that = this
+    return new Promise(function(resolve,reject){
+        that.fetchAccessToken()
+        .then((data)=>{
+            var url = api.mass.byOpenIds + 'access_token=' + data.access_token
+            var form = {
+                touser:openIds,
+                mpnews:mpnews,
+                msgtype:msgtype,
+                send_ignore_reprint:0
+            }
+            let opts = {url:url,json:true,method:'POST',body:form}
+            console.log('massByOpenIds',opts)
+            util.request(opts)
+            .then(function(res){
+                console.log('massByOpenIds res',res)
+                var _data = res
+                if(_data){
+                    resolve(_data)
+                }else{
+                    throw new Error('massByOpenIds fails')
+                }   
+            })
+            .catch((e)=>{
+                console.log('massByOpenIds  error')
                 reject(e)
             })
         })

@@ -21,6 +21,7 @@ exports.writeFileAsync = function(fpath,content){
 }
 exports.request = function(opts){  
     opts = opts || {};  
+    // console.log('opts',opts)
     return new Promise(function(resolve, reject){  
         request(opts,function(error, response, body){  
   
